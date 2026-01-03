@@ -58,6 +58,43 @@
         .text-box {
             color: rgb(255, 255, 255);
             text-shadow: 0 0 15px rgba(235, 54, 54, 0.3);
+            position: relative; 
+            display: inline-block;
+        }
+
+        /* --- ШАПКА САНТЫ --- */
+        .santa-hat {
+            position: absolute;
+            top: -45px;
+            right: -15px;
+            width: 70px;
+            height: auto;
+            transform: rotate(15deg);
+            z-index: 15;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+
+        /* --- ПАДАЮЩИЙ СНЕГ (ЭМОДЗИ) --- */
+        .snowflake {
+            position: absolute;
+            top: -50px;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.9;
+            color: #fff; /* Белый цвет снега */
+            animation: fall linear forwards;
+            line-height: 1; /* Чтобы высота строки не мешала */
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.9;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg);
+                opacity: 0.2;
+            }
         }
 
         /* --- 5. ОКНО ЗАГРУЗКИ --- */
@@ -103,7 +140,7 @@
             transition: width 0.2s ease-out;
         }
 
-        /* --- 7. ОКНО ФАЙЛОВ (VGUI СТИЛЬ) --- */
+        /* --- 7. ОКНО ФАЙЛОВ --- */
         .file-list-container {
             background-color: #080808;
             border: 2px solid rgb(235, 54, 54);
@@ -128,12 +165,10 @@
             padding-bottom: 2px;
         }
 
-        /* Цвета тегов */
         .tag-addon { color: rgb(235, 54, 54); font-weight: bold; margin-right: 5px; }
         .tag-lua   { color: #ffaa00; font-weight: bold; margin-right: 5px; }
         .tag-file  { color: #4488ff; font-weight: bold; margin-right: 5px; }
         .tag-sys   { color: #888888; font-weight: bold; margin-right: 5px; }
-
         .filename { color: #aaa; }
 
         /* --- 8. АВТОРЫ --- */
@@ -184,59 +219,99 @@
         }
 
     </style>
-</head>
-<body>
-
-    <div class="authors-container">
-        Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
-    </div>
-
-    <div id="thoughts-wrapper"></div>
-
-    <div class="container">
-        <h1 class="title">
-            <span class="text-local">Local</span><span class="text-box">-Box</span>
-        </h1>
-
-        <div class="loading-box">
-            <!-- Статус сверху -->
-            <div class="status-label" id="status">Connecting...</div>
-            
-            <!-- Полоса -->
-            <div class="progress-track">
-                <div class="progress-bar" id="bar"></div>
-            </div>
-
-            <!-- Окно файлов -->
-            <div class="file-list-container" id="file-window">
-                <!-- Сюда будут падать ВСЕ логи -->
-            </div>
-        </div>
-    </div>
-
+    
     <script>
-        const bar = document.getElementById('bar');
-        const statusText = document.getElementById('status');
-        const fileWindow = document.getElementById('file-window');
+        // Глобальные переменные
+        var totalFiles = 0;
+        var addonCount = 0;
+        var luaCount = 0;
+        var fileCount = 0;
         
-        let addonCount = 0;
-        let fileCount = 0;
-        let luaCount = 0;
-        let totalFiles = 0;
+        // === ЛОГИКА СНЕГА (ЭМОДЗИ) ===
+        function spawnSnowflake() {
+            var snow = document.createElement('div');
+            snow.innerHTML = "❄"; // Эмодзи снежинки
+            snow.className = 'snowflake';
+            
+            // Рандомная позиция по ширине
+            snow.style.left = Math.random() * 100 + 'vw';
+            
+            // Рандомный размер шрифта (от 15 до 35px)
+            var size = Math.random() * 20 + 15;
+            snow.style.fontSize = size + 'px';
+            
+            // Рандомная скорость падения (от 3 до 8 секунд)
+            var duration = Math.random() * 5 + 3;
+            snow.style.animationDuration = duration + 's';
+            
+            document.body.appendChild(snow);
+            
+            // Удаляем снежинку после падения
+            setTimeout(function() {
+                snow.remove();
+            }, duration * 1000);
+        }
 
-        // --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАПИСИ ---
+        // === ФУНКЦИИ GMOD (HOOKS) ===
+        window.SetStatusChanged = function(status) { 
+            var statusEl = document.getElementById('status');
+            if(statusEl) statusEl.innerText = status;
+
+            // 1. WORKSHOP ADDON
+            var workshopMatch = status.match(/'([^']+)'/);
+            if (workshopMatch && status.indexOf("LOADING") !== -1) {
+                addonCount++;
+                var addonName = workshopMatch[1];
+                appendLog(`<span class="tag-addon">[ADDON #${addonCount}]</span><span class="filename">${addonName}</span>`);
+            } 
+            // 2. LUA / SCRIPTS
+            else if (status.toLowerCase().indexOf("lua") !== -1 || status.toLowerCase().indexOf("script") !== -1) {
+                luaCount++;
+                appendLog(`<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${status}</span>`);
+            }
+            // 3. ВСЁ ОСТАЛЬНОЕ
+            else {
+                if (status && status.trim() !== "") {
+                    appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">${status}</span>`);
+                }
+            }
+        };
+        
+        window.DownloadingFile = function(fileName) { 
+            var statusEl = document.getElementById('status');
+            if(statusEl) statusEl.innerText = "Downloading: " + fileName; 
+            
+            fileCount++;
+            var cleanName = fileName;
+            if (fileName.includes("/")) {
+                cleanName = fileName.split('/').pop(); 
+            }
+            appendLog(`<span class="tag-file">[FILE #${fileCount}]</span><span class="filename">${cleanName}</span>`);
+        };
+        
+        window.SetFilesTotal = function(total) { totalFiles = total; };
+        
+        window.SetFilesNeeded = function(needed) {
+            var bar = document.getElementById('bar');
+            if (totalFiles > 0 && bar) {
+                var percent = ((totalFiles - needed) / totalFiles) * 100;
+                bar.style.width = percent + '%';
+            }
+        };
+        
+        window.SetFilesRemaining = function(remaining) { 
+            window.SetFilesNeeded(remaining); 
+        };
+
         function appendLog(htmlContent) {
-            const div = document.createElement('div');
+            var fileWindow = document.getElementById('file-window');
+            if(!fileWindow) return;
+
+            var div = document.createElement('div');
             div.className = 'file-item';
             div.innerHTML = htmlContent;
-            
-            // Добавляем запись в конец
             fileWindow.appendChild(div);
-            
-            // Автопрокрутка вниз, чтобы видеть последнее сообщение
             fileWindow.scrollTop = fileWindow.scrollHeight;
-
-            // Храним историю побольше, например 15 строк, старые удаляем
             if (fileWindow.children.length > 15) {
                 fileWindow.removeChild(fileWindow.children[0]);
             }
@@ -266,84 +341,55 @@
 
         function spawnThought() {
             if (thoughtTexts.length === 0) return;
-            const text = thoughtTexts[Math.floor(Math.random() * thoughtTexts.length)];
-            const el = document.createElement('div');
+            var text = thoughtTexts[Math.floor(Math.random() * thoughtTexts.length)];
+            var el = document.createElement('div');
             el.className = 'bg-thought';
             el.innerText = text;
-            const posX = Math.random() * 80 + 10; 
-            const posY = Math.random() * 80 + 10;
-            const size = Math.floor(Math.random() * 10) + 16;
+            var posX = Math.random() * 80 + 10; 
+            var posY = Math.random() * 80 + 10;
+            var size = Math.floor(Math.random() * 10) + 16;
             el.style.left = posX + '%';
             el.style.top = posY + '%';
             el.style.fontSize = size + 'px';
             document.body.appendChild(el);
-            setTimeout(() => { el.remove(); }, 6000);
+            setTimeout(function() { el.remove(); }, 6000);
         }
-        setInterval(spawnThought, 800);
 
-        // ============================================
-        // ЛОГИКА ЗАГРУЗКИ GMOD (HOOKS)
-        // ============================================
-
-        // 1. SetStatusChanged: Сюда приходит всё (Client info sent, Workshop loading, etc)
-        function SetStatusChanged(status) { 
-            // 1. Обновляем верхний текст
-            statusText.innerText = status;
-
-            // 2. АНАЛИЗИРУЕМ И ПИШЕМ В НИЖНЕЕ ОКНО
-            
-            // Если это Workshop аддон (обычно содержит "LOADING 'название'")
-            const workshopMatch = status.match(/'([^']+)'/);
-            if (workshopMatch && status.includes("LOADING")) {
-                addonCount++;
-                // Берем только имя из кавычек
-                let addonName = workshopMatch[1];
-                appendLog(`<span class="tag-addon">[ADDON #${addonCount}]</span><span class="filename">${addonName}</span>`);
-            } 
-            // Если это Lua скрипт
-            else if (status.toLowerCase().includes("lua") || status.toLowerCase().includes("script")) {
-                luaCount++;
-                appendLog(`<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${status}</span>`);
-            }
-            // Все остальные системные сообщения (Client info sent, Mounting, и т.д.)
-            else {
-                // Игнорируем совсем пустые сообщения
-                if (status && status.trim() !== "") {
-                    appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">${status}</span>`);
-                }
-            }
-        }
-        
-        // 2. DownloadingFile: Сюда приходят одиночные файлы (FastDL)
-        function DownloadingFile(fileName) { 
-            statusText.innerText = "Downloading: " + fileName; 
-            
-            fileCount++;
-            // Очищаем путь, чтобы было красивее
-            let cleanName = fileName;
-            if (fileName.includes("/")) {
-                cleanName = fileName.split('/').pop(); 
-            }
-            
-            appendLog(`<span class="tag-file">[FILE #${fileCount}]</span><span class="filename">${cleanName}</span>`);
-        }
-        
-        function SetFilesTotal(total) { totalFiles = total; }
-        
-        function SetFilesNeeded(needed) {
-            if (totalFiles > 0) {
-                const percent = ((totalFiles - needed) / totalFiles) * 100;
-                bar.style.width = percent + '%';
-            }
-        }
-        
-        function SetFilesRemaining(remaining) { SetFilesNeeded(remaining); }
-
-        // Принудительно пишем первое сообщение при загрузке страницы
         window.onload = function() {
-            appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">Interface Initialized...</span>`);
-        };
+             appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">Loading Interface...</span>`);
+             setInterval(spawnThought, 800);
+             // Запуск снега
+             setInterval(spawnSnowflake, 200);
+        }
 
     </script>
+</head>
+<body>
+
+    <div class="authors-container">
+        Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
+    </div>
+
+    <div id="thoughts-wrapper"></div>
+
+    <div class="container">
+        <!-- Шапка Санты -->
+        <h1 class="title">
+            <span class="text-local">Local</span><span class="text-box">-Box<img src="https://static.vecteezy.com/system/resources/previews/032/545/954/non_2x/christmas-santa-claus-red-and-white-hat-isolated-on-transparent-background-png.png" class="santa-hat" alt="Hat"></span>
+        </h1>
+
+        <div class="loading-box">
+            <div class="status-label" id="status">Connecting...</div>
+            
+            <div class="progress-track">
+                <div class="progress-bar" id="bar"></div>
+            </div>
+
+            <div class="file-list-container" id="file-window">
+                <!-- Логи -->
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
