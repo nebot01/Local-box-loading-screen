@@ -30,7 +30,7 @@
             text-align: center;
         }
 
-        /* --- 3. ЛОГОТИП (КВАДРАТНЫЙ) --- */
+        /* --- 3. ЛОГОТИП --- */
         .logo-img {
             width: 130px;
             height: 130px;
@@ -60,7 +60,7 @@
             text-shadow: 0 0 15px rgba(235, 54, 54, 0.3);
         }
 
-        /* --- 5. ОКНО ЗАГРУЗКИ (ОБЩЕЕ) --- */
+        /* --- 5. ОКНО ЗАГРУЗКИ --- */
         .loading-box {
             background-color: transparent; 
             text-align: left;
@@ -78,7 +78,7 @@
             max-width: 100%;
         }
 
-        /* --- 6. ПОЛОСА ЗАГРУЗКИ (БЛОКИ) --- */
+        /* --- 6. ПОЛОСА ЗАГРУЗКИ --- */
         .progress-track {
             width: 100%;
             height: 26px;
@@ -103,7 +103,7 @@
             transition: width 0.2s ease-out;
         }
 
-        /* --- 7. ОКНО ФАЙЛОВ (СТИЛЬ VGUI) --- */
+        /* --- 7. ОКНО ФАЙЛОВ (VGUI СТИЛЬ) --- */
         .file-list-container {
             background-color: #080808;
             border: 2px solid rgb(235, 54, 54);
@@ -128,27 +128,13 @@
             padding-bottom: 2px;
         }
 
-        .file-item .tag {
-            color: rgb(235, 54, 54);
-            font-weight: bold;
-            margin-right: 5px;
-        }
-        
-        .file-item .tag-lua {
-            color: #ff8800; 
-            font-weight: bold;
-            margin-right: 5px;
-        }
+        /* Цвета тегов */
+        .tag-addon { color: rgb(235, 54, 54); font-weight: bold; margin-right: 5px; }
+        .tag-lua   { color: #ffaa00; font-weight: bold; margin-right: 5px; }
+        .tag-file  { color: #4488ff; font-weight: bold; margin-right: 5px; }
+        .tag-sys   { color: #888888; font-weight: bold; margin-right: 5px; }
 
-        .file-item .tag-sys {
-            color: #4488ff; 
-            font-weight: bold;
-            margin-right: 5px;
-        }
-
-        .file-item .filename {
-            color: #aaa;
-        }
+        .filename { color: #aaa; }
 
         /* --- 8. АВТОРЫ --- */
         .authors-container {
@@ -208,21 +194,22 @@
     <div id="thoughts-wrapper"></div>
 
     <div class="container">
-        <!-- Заголовок -->
         <h1 class="title">
             <span class="text-local">Local</span><span class="text-box">-Box</span>
         </h1>
 
         <div class="loading-box">
-            <div class="status-label" id="status">INITIALIZING CONNECTION...</div>
+            <!-- Статус сверху -->
+            <div class="status-label" id="status">Connecting...</div>
             
+            <!-- Полоса -->
             <div class="progress-track">
                 <div class="progress-bar" id="bar"></div>
             </div>
 
-            <!-- VGUI Окно файлов -->
+            <!-- Окно файлов -->
             <div class="file-list-container" id="file-window">
-                <!-- Логи файлов -->
+                <!-- Сюда будут падать ВСЕ логи -->
             </div>
         </div>
     </div>
@@ -233,38 +220,26 @@
         const fileWindow = document.getElementById('file-window');
         
         let addonCount = 0;
+        let fileCount = 0;
         let luaCount = 0;
         let totalFiles = 0;
 
-        // --- ЛОГИРОВАНИЕ ---
-        function appendLog(element) {
-            fileWindow.appendChild(element);
-            if (fileWindow.children.length > 7) {
+        // --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАПИСИ ---
+        function appendLog(htmlContent) {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = htmlContent;
+            
+            // Добавляем запись в конец
+            fileWindow.appendChild(div);
+            
+            // Автопрокрутка вниз, чтобы видеть последнее сообщение
+            fileWindow.scrollTop = fileWindow.scrollHeight;
+
+            // Храним историю побольше, например 15 строк, старые удаляем
+            if (fileWindow.children.length > 15) {
                 fileWindow.removeChild(fileWindow.children[0]);
             }
-        }
-
-        function logAddon(name) {
-            addonCount++;
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `<span class="tag">[ADDON #${addonCount}]</span><span class="filename">${name}</span>`;
-            appendLog(div);
-        }
-
-        function logLua(info) {
-            luaCount++;
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${info}</span>`;
-            appendLog(div);
-        }
-        
-        function logSystem(info) {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `<span class="tag-sys">[SYS]</span><span class="filename">${info}</span>`;
-            appendLog(div);
         }
 
         // --- МЫСЛИ ---
@@ -310,41 +285,47 @@
         // ЛОГИКА ЗАГРУЗКИ GMOD (HOOKS)
         // ============================================
 
-        // Это функция, которая получает текст как на твоем скриншоте
+        // 1. SetStatusChanged: Сюда приходит всё (Client info sent, Workshop loading, etc)
         function SetStatusChanged(status) { 
-            // Обновляем текст НАД полосой
-            statusText.innerText = status; 
-            
-            // ПАРСИНГ: Пытаемся понять, что это за статус, и добавить его В окно файлов
+            // 1. Обновляем верхний текст
+            statusText.innerText = status;
 
-            // 1. Проверка на WORKSHOP ADDON (как на скрине: ... LOADING 'Name')
-            // Ищем текст внутри одинарных кавычек '...'
-            const workshopMatch = status.match(/'([^']+)'/);
+            // 2. АНАЛИЗИРУЕМ И ПИШЕМ В НИЖНЕЕ ОКНО
             
+            // Если это Workshop аддон (обычно содержит "LOADING 'название'")
+            const workshopMatch = status.match(/'([^']+)'/);
             if (workshopMatch && status.includes("LOADING")) {
-                // Если нашли название аддона в кавычках
-                logAddon(workshopMatch[1]);
+                addonCount++;
+                // Берем только имя из кавычек
+                let addonName = workshopMatch[1];
+                appendLog(`<span class="tag-addon">[ADDON #${addonCount}]</span><span class="filename">${addonName}</span>`);
+            } 
+            // Если это Lua скрипт
+            else if (status.toLowerCase().includes("lua") || status.toLowerCase().includes("script")) {
+                luaCount++;
+                appendLog(`<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${status}</span>`);
             }
-            // 2. Проверка на LUA / SCRIPTS
-            else if (status.toLowerCase().includes("lua") || status.toLowerCase().includes("script") || status.toLowerCase().includes("client info")) {
-                logLua(status);
-            }
-            // 3. Если это просто смена статуса (например "Mounting Addons"), тоже пишем в лог, если это не пустота
-            else if (status.length > 2) {
-                // Проверяем, чтобы не дублировать, если статус такой же
-                // Но для простоты просто логируем как системное сообщение
-                // logSystem(status); // Раскомментируй, если хочешь видеть ВСЕ статусы в окне
+            // Все остальные системные сообщения (Client info sent, Mounting, и т.д.)
+            else {
+                // Игнорируем совсем пустые сообщения
+                if (status && status.trim() !== "") {
+                    appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">${status}</span>`);
+                }
             }
         }
         
-        // Это функция для "старой" загрузки одиночных файлов (FastDL)
+        // 2. DownloadingFile: Сюда приходят одиночные файлы (FastDL)
         function DownloadingFile(fileName) { 
-            statusText.innerText = "DOWNLOADING: " + fileName; 
+            statusText.innerText = "Downloading: " + fileName; 
+            
+            fileCount++;
+            // Очищаем путь, чтобы было красивее
             let cleanName = fileName;
             if (fileName.includes("/")) {
                 cleanName = fileName.split('/').pop(); 
             }
-            logAddon(cleanName); 
+            
+            appendLog(`<span class="tag-file">[FILE #${fileCount}]</span><span class="filename">${cleanName}</span>`);
         }
         
         function SetFilesTotal(total) { totalFiles = total; }
@@ -357,6 +338,11 @@
         }
         
         function SetFilesRemaining(remaining) { SetFilesNeeded(remaining); }
+
+        // Принудительно пишем первое сообщение при загрузке страницы
+        window.onload = function() {
+            appendLog(`<span class="tag-sys">[SYS]</span><span class="filename">Interface Initialized...</span>`);
+        };
 
     </script>
 </body>
