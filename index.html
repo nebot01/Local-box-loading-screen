@@ -104,7 +104,7 @@
             background-color: #080808;
             border: 2px solid rgb(235, 54, 54);
             border-radius: 0px;
-            height: 120px;
+            height: 140px; /* Чуть увеличил высоту */
             padding: 10px;
             overflow: hidden;
             font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
@@ -120,15 +120,29 @@
             text-overflow: ellipsis;
             margin-bottom: 4px;
             animation: fadeIn 0.2s;
+            border-bottom: 1px solid rgba(255, 0, 0, 0.1); /* Разделитель для красоты */
+            padding-bottom: 2px;
         }
 
-        .file-item span.prefix {
+        /* Стиль для префикса [ADDON #1] */
+        .file-item .tag {
             color: rgb(235, 54, 54);
-            margin-right: 8px;
             font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        /* Стиль для префикса [LUA #1] - можно сделать другим цветом, но оставим красным для стиля */
+        .file-item .tag-lua {
+            color: #ff8800; /* Оранжевый для Lua */
+            font-weight: bold;
+            margin-right: 5px;
         }
 
-        /* --- 8. АВТОРЫ (РАДУЖНЫЙ ТЕКСТ) --- */
+        .file-item .filename {
+            color: #aaa;
+        }
+
+        /* --- 8. АВТОРЫ --- */
         .authors-container {
             position: absolute;
             top: 20px;
@@ -152,21 +166,14 @@
             animation: rainbow_move 3s linear infinite;
         }
 
-        @keyframes rainbow_move {
-            to { background-position: 200% center; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-5px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes rainbow_move { to { background-position: 200% center; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 
         /* --- 9. МЫСЛИ --- */
         .bg-thought {
             position: absolute;
             font-family: 'Consolas', monospace;
             color: rgba(255, 255, 255, 0.4);
-            /* Размер задается в JS, но тут база */
             font-size: 16px; 
             pointer-events: none;
             z-index: 1;
@@ -177,7 +184,7 @@
 
         @keyframes floatFade {
             0% { opacity: 0; transform: translateY(0); }
-            20% { opacity: 0.4; } /* Чуть ярче сделал, раз шрифт больше */
+            20% { opacity: 0.4; }
             80% { opacity: 0.4; }
             100% { opacity: 0; transform: translateY(-40px); }
         }
@@ -186,16 +193,13 @@
 </head>
 <body>
 
-    <!-- Строка с авторами сверху -->
     <div class="authors-container">
         Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
     </div>
 
-    <!-- Сюда скрипт будет спавнить "мысли" -->
     <div id="thoughts-wrapper"></div>
 
     <div class="container">
-        
         <!-- Заголовок -->
         <h1 class="title">
             <span class="text-local">Local</span><span class="text-box">-Box</span>
@@ -204,7 +208,6 @@
         <div class="loading-box">
             <div class="status-label" id="status">INITIALIZING CONNECTION...</div>
             
-            <!-- Полоса загрузки -->
             <div class="progress-track">
                 <div class="progress-bar" id="bar"></div>
             </div>
@@ -221,85 +224,91 @@
         const statusText = document.getElementById('status');
         const fileWindow = document.getElementById('file-window');
         
-        // ============================================
-        // СПИСОК МЫСЛЕЙ (Заполнил примерами, чтобы работало)
-        // ============================================
-        const thoughtTexts = [
-            "Break your neck",
-            "George Floyd Wiki",
-            "Sadsalat gay porn, watch online",
-            "中国(小黄人叶)",
-            "Rubby4",
-            "Wagan",
-            "Ne bot01",
-            "Fuck your mom",
-            "Minetik",
-            "PDF File",
-            "Watch porn with your family!",
-            "Nolik huylan",
-            "Check out 'sex-studentki.live' site",
-            "Папаша на герлянде",
-            "Пьяная мамаша под столом",
-            "Big huy",
-            "I think i need go into my window",
-            "Gay porn with your dad"
-        ];
-        
-        // Функция создания мысли
-        function spawnThought() {
-            if (thoughtTexts.length === 0) return; // Защита от пустого массива
+        // --- ПЕРЕМЕННЫЕ СЧЕТЧИКОВ ---
+        let addonCount = 0;
+        let luaCount = 0;
+        let totalFiles = 0;
 
+        // --- ФУНКЦИИ ЛОГОВ ---
+        
+        // Добавление лога загрузки файла/аддона
+        function logDownload(name) {
+            addonCount++;
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            // Вывод: [ADDON #1] название_файла
+            div.innerHTML = `<span class="tag">[ADDON #${addonCount}]</span><span class="filename">${name}</span>`;
+            appendLog(div);
+        }
+
+        // Добавление лога Lua скрипта
+        function logLua(info) {
+            luaCount++;
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            // Вывод: [LUA #1] статус
+            div.innerHTML = `<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${info}</span>`;
+            appendLog(div);
+        }
+
+        // Общая функция добавления в DOM
+        function appendLog(element) {
+            fileWindow.appendChild(element);
+            // Держим 7 последних строк
+            if (fileWindow.children.length > 7) {
+                fileWindow.removeChild(fileWindow.children[0]);
+            }
+        }
+
+        // --- МЫСЛИ ---
+        const thoughtTexts = [
+            "Почему загрузка такая долгая?", "Не выключай компьютер...", "Local-Box наблюдает",
+            "Связь с сервером установлена", "Ты готов?", "Инициализация протоколов...",
+            "Загрузка текстур...", "Не забывай правила", "System Error: False",
+            "Где я?", "Ожидание ответа...", "Синхронизация..."
+        ];
+
+        function spawnThought() {
+            if (thoughtTexts.length === 0) return;
             const text = thoughtTexts[Math.floor(Math.random() * thoughtTexts.length)];
             const el = document.createElement('div');
             el.className = 'bg-thought';
             el.innerText = text;
-
-            // Рандомная позиция
             const posX = Math.random() * 80 + 10; 
             const posY = Math.random() * 80 + 10;
-            
-            // --- ИЗМЕНЕНИЕ: УВЕЛИЧЕННЫЙ РАЗМЕР ШРИФТА ---
-            // Теперь от 16px до 26px (было 10-14px)
             const size = Math.floor(Math.random() * 10) + 16;
 
             el.style.left = posX + '%';
             el.style.top = posY + '%';
             el.style.fontSize = size + 'px';
-
             document.body.appendChild(el);
-
-            setTimeout(() => {
-                el.remove();
-            }, 6000);
+            setTimeout(() => { el.remove(); }, 6000);
         }
-
         setInterval(spawnThought, 800);
 
         // ============================================
-        // ЛОГИКА ЗАГРУЗКИ GMOD
+        // ЛОГИКА ЗАГРУЗКИ GMOD (HOOKS)
         // ============================================
-        
-        let totalFiles = 0;
 
-        function addFile(name) {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `<span class="prefix">>></span>${name}`;
-            fileWindow.appendChild(div);
-
-            if (fileWindow.children.length > 6) {
-                fileWindow.removeChild(fileWindow.children[0]);
+        // 1. Статус изменился
+        function SetStatusChanged(status) { 
+            statusText.innerText = status.toUpperCase();
+            
+            // Если статус содержит слова про скрипты или Lua, считаем это как запуск скрипта
+            if (status.toLowerCase().includes("lua") || status.toLowerCase().includes("script") || status.toLowerCase().includes("client info")) {
+                logLua(status);
             }
         }
-
-        // --- GMOD HOOKS ---
-        function SetStatusChanged(status) { 
-            statusText.innerText = status.toUpperCase(); 
-        }
         
+        // 2. Скачивание файла
         function DownloadingFile(fileName) { 
             statusText.innerText = "DOWNLOADING: " + fileName; 
-            addFile(fileName); 
+            // Пытаемся очистить путь, чтобы было красивее (например, убрать maps/)
+            let cleanName = fileName;
+            if (fileName.includes("/")) {
+                cleanName = fileName.split('/').pop(); // Берем только имя файла
+            }
+            logDownload(fileName); // Или используйте cleanName, если хотите короче
         }
         
         function SetFilesTotal(total) { totalFiles = total; }
@@ -317,20 +326,39 @@
         if (!navigator.userAgent.includes("Valve Source Game")) {
             let p = 0;
             statusText.innerText = "DEBUG_MODE_ACTIVE...";
-            const demoFiles = [
-                "lua/bin/gmcl_localbox_win64.dll", 
-                "materials/models/props/monitor_red.vtf", 
-                "sound/ui/buttonrollover.wav",
-                "cfg/autoexec.cfg",
-                "gamemodes/darkrp/gamemode/cl_init.lua"
+            
+            // Фейковые данные для теста
+            const fakeDownloads = [
+                "materials/models/props_lab/monitor01a.vtf",
+                "sound/weapons/ak47/ak47_dist.wav",
+                "models/player/police.mdl",
+                "maps/rp_localbox_v2.bsp",
+                "particles/blood_impact.pcf"
+            ];
+            
+            const fakeLua = [
+                "Running cl_init.lua...",
+                "Initializing DarkRP modules...",
+                "Loading HUD scripts...",
+                "Fetching network data..."
             ];
             
             setInterval(() => {
                 if (p < 100) {
                     p += 0.5;
                     bar.style.width = p + '%';
-                    if (Math.floor(p) % 15 === 0 && Math.random() > 0.5) {
-                        addFile(demoFiles[Math.floor(Math.random() * demoFiles.length)]);
+                    
+                    // Эмуляция случайных событий
+                    if (Math.floor(p) % 10 === 0) {
+                        if (Math.random() > 0.5) {
+                            // Скачивание
+                            const file = fakeDownloads[Math.floor(Math.random() * fakeDownloads.length)];
+                            DownloadingFile(file);
+                        } else {
+                            // Lua
+                            const luaInfo = fakeLua[Math.floor(Math.random() * fakeLua.length)];
+                            SetStatusChanged(luaInfo);
+                        }
                     }
                 }
             }, 50);
