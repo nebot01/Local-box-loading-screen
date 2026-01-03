@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Local-Box Loading</title>
+    <style>
+        /* --- 1. ОСНОВНОЙ ФОН --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #2b0000 0%, #050505 80%);
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Tahoma', 'Verdana', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            position: relative;
+        }
+
+        /* --- 2. КОНТЕЙНЕР --- */
+        .container {
+            width: 700px;
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        /* --- 3. ЛОГОТИП (КВАДРАТНЫЙ) --- */
+        .logo-img {
+            width: 130px;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 0px; 
+            border: 3px solid rgb(235, 54, 54);
+            box-shadow: 0 0 30px rgba(235, 54, 54, 0.4); 
+            margin-bottom: 20px;
+        }
+
+        /* --- 4. НАЗВАНИЕ --- */
+        h1.title {
+            font-size: 4em;
+            margin: 0 0 30px 0;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            line-height: 1;
+        }
+
+        .text-local {
+            color: rgb(235, 54, 54);
+            text-shadow: 0 0 15px rgba(235, 54, 54, 0.8);
+        }
+
+        .text-box {
+            color: rgb(255, 255, 255);
+            text-shadow: 0 0 15px rgba(235, 54, 54, 0.3);
+        }
+
+        /* --- 5. ОКНО ЗАГРУЗКИ (ОБЩЕЕ) --- */
+        .loading-box {
+            background-color: transparent; 
+            text-align: left;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #ddd;
+            margin-bottom: 5px;
+            font-family: 'Consolas', monospace;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* --- 6. ПОЛОСА ЗАГРУЗКИ (БЛОКИ) --- */
+        .progress-track {
+            width: 100%;
+            height: 26px;
+            background-color: #0a0a0a;
+            border: 1px solid #444;
+            padding: 2px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-image: linear-gradient(
+                90deg, 
+                rgb(235, 54, 54) 0px, rgb(235, 54, 54) 8px, 
+                transparent 8px, transparent 12px
+            );
+            background-size: 12px 100%;
+            filter: drop-shadow(0 0 3px rgb(235, 54, 54));
+            transition: width 0.2s ease-out;
+        }
+
+        /* --- 7. ОКНО ФАЙЛОВ (СТИЛЬ VGUI) --- */
+        .file-list-container {
+            background-color: #080808;
+            border: 2px solid rgb(235, 54, 54);
+            border-radius: 0px;
+            height: 120px;
+            padding: 10px;
+            overflow: hidden;
+            font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
+            font-size: 13px;
+            color: #ccc;
+            text-align: left;
+            box-shadow: 0 0 15px rgba(235, 54, 54, 0.15);
+        }
+
+        .file-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+            animation: fadeIn 0.2s;
+        }
+
+        .file-item span.prefix {
+            color: rgb(235, 54, 54);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        /* --- 8. АВТОРЫ (РАДУЖНЫЙ ТЕКСТ) --- */
+        .authors-container {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            z-index: 20;
+            color: #888;
+        }
+
+        .rainbow-names {
+            font-weight: bold;
+            font-size: 16px;
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff, #ff0000);
+            background-size: 200% auto;
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow_move 3s linear infinite;
+        }
+
+        @keyframes rainbow_move {
+            to { background-position: 200% center; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-5px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* --- 9. МЫСЛИ --- */
+        .bg-thought {
+            position: absolute;
+            font-family: 'Consolas', monospace;
+            color: rgba(255, 255, 255, 0.4);
+            /* Размер задается в JS, но тут база */
+            font-size: 16px; 
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            animation: floatFade 6s ease-in-out forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes floatFade {
+            0% { opacity: 0; transform: translateY(0); }
+            20% { opacity: 0.4; } /* Чуть ярче сделал, раз шрифт больше */
+            80% { opacity: 0.4; }
+            100% { opacity: 0; transform: translateY(-40px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Строка с авторами сверху -->
+    <div class="authors-container">
+        Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
+    </div>
+
+    <!-- Сюда скрипт будет спавнить "мысли" -->
+    <div id="thoughts-wrapper"></div>
+
+    <div class="container">
+        
+        <!-- Заголовок -->
+        <h1 class="title">
+            <span class="text-local">Local</span><span class="text-box">-Box</span>
+        </h1>
+
+        <div class="loading-box">
+            <div class="status-label" id="status">INITIALIZING CONNECTION...</div>
+            
+            <!-- Полоса загрузки -->
+            <div class="progress-track">
+                <div class="progress-bar" id="bar"></div>
+            </div>
+
+            <!-- VGUI Окно файлов -->
+            <div class="file-list-container" id="file-window">
+                <!-- Логи файлов -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bar = document.getElementById('bar');
+        const statusText = document.getElementById('status');
+        const fileWindow = document.getElementById('file-window');
+        
+        // ============================================
+        // СПИСОК МЫСЛЕЙ (Заполнил примерами, чтобы работало)
+        // ============================================
+        const thoughtTexts = [
+            "Break your neck",
+            "George Floyd Wiki",
+            "Sadsalat gay porn, watch online",
+            "中国(小黄人叶)",
+            "Rubby4",
+            "Wagan",
+            "Ne bot01",
+            "Fuck your mom",
+            "Minetik",
+            "PDF File",
+            "Watch porn with your family!",
+            "Nolik huylan",
+            "Check out 'sex-studentki.live' site",
+            "Папаша на герлянде",
+            "Пьяная мамаша под столом",
+            "Big huy",
+            "I think i need go into my window",
+            "Gay porn with your dad"
+        ];
+        
+        // Функция создания мысли
+        function spawnThought() {
+            if (thoughtTexts.length === 0) return; // Защита от пустого массива
+
+            const text = thoughtTexts[Math.floor(Math.random() * thoughtTexts.length)];
+            const el = document.createElement('div');
+            el.className = 'bg-thought';
+            el.innerText = text;
+
+            // Рандомная позиция
+            const posX = Math.random() * 80 + 10; 
+            const posY = Math.random() * 80 + 10;
+            
+            // --- ИЗМЕНЕНИЕ: УВЕЛИЧЕННЫЙ РАЗМЕР ШРИФТА ---
+            // Теперь от 16px до 26px (было 10-14px)
+            const size = Math.floor(Math.random() * 10) + 16;
+
+            el.style.left = posX + '%';
+            el.style.top = posY + '%';
+            el.style.fontSize = size + 'px';
+
+            document.body.appendChild(el);
+
+            setTimeout(() => {
+                el.remove();
+            }, 6000);
+        }
+
+        setInterval(spawnThought, 800);
+
+        // ============================================
+        // ЛОГИКА ЗАГРУЗКИ GMOD
+        // ============================================
+        
+        let totalFiles = 0;
+
+        function addFile(name) {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `<span class="prefix">>></span>${name}`;
+            fileWindow.appendChild(div);
+
+            if (fileWindow.children.length > 6) {
+                fileWindow.removeChild(fileWindow.children[0]);
+            }
+        }
+
+        // --- GMOD HOOKS ---
+        function SetStatusChanged(status) { 
+            statusText.innerText = status.toUpperCase(); 
+        }
+        
+        function DownloadingFile(fileName) { 
+            statusText.innerText = "DOWNLOADING: " + fileName; 
+            addFile(fileName); 
+        }
+        
+        function SetFilesTotal(total) { totalFiles = total; }
+        
+        function SetFilesNeeded(needed) {
+            if (totalFiles > 0) {
+                const percent = ((totalFiles - needed) / totalFiles) * 100;
+                bar.style.width = percent + '%';
+            }
+        }
+        
+        function SetFilesRemaining(remaining) { SetFilesNeeded(remaining); }
+
+        // --- DEMO MODE (BROWSER) ---
+        if (!navigator.userAgent.includes("Valve Source Game")) {
+            let p = 0;
+            statusText.innerText = "DEBUG_MODE_ACTIVE...";
+            const demoFiles = [
+                "lua/bin/gmcl_localbox_win64.dll", 
+                "materials/models/props/monitor_red.vtf", 
+                "sound/ui/buttonrollover.wav",
+                "cfg/autoexec.cfg",
+                "gamemodes/darkrp/gamemode/cl_init.lua"
+            ];
+            
+            setInterval(() => {
+                if (p < 100) {
+                    p += 0.5;
+                    bar.style.width = p + '%';
+                    if (Math.floor(p) % 15 === 0 && Math.random() > 0.5) {
+                        addFile(demoFiles[Math.floor(Math.random() * demoFiles.length)]);
+                    }
+                }
+            }, 50);
+        }
+    </script>
+</body>
+</html>
