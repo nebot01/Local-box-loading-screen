@@ -72,6 +72,10 @@
             margin-bottom: 5px;
             font-family: 'Consolas', monospace;
             text-shadow: 1px 1px 2px #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
         }
 
         /* --- 6. ПОЛОСА ЗАГРУЗКИ (БЛОКИ) --- */
@@ -104,7 +108,7 @@
             background-color: #080808;
             border: 2px solid rgb(235, 54, 54);
             border-radius: 0px;
-            height: 120px;
+            height: 140px; 
             padding: 10px;
             overflow: hidden;
             font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
@@ -120,15 +124,33 @@
             text-overflow: ellipsis;
             margin-bottom: 4px;
             animation: fadeIn 0.2s;
+            border-bottom: 1px solid rgba(255, 0, 0, 0.1); 
+            padding-bottom: 2px;
         }
 
-        .file-item span.prefix {
+        .file-item .tag {
             color: rgb(235, 54, 54);
-            margin-right: 8px;
             font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .file-item .tag-lua {
+            color: #ff8800; 
+            font-weight: bold;
+            margin-right: 5px;
         }
 
-        /* --- 8. АВТОРЫ (РАДУЖНЫЙ ТЕКСТ) --- */
+        .file-item .tag-sys {
+            color: #4488ff; 
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .file-item .filename {
+            color: #aaa;
+        }
+
+        /* --- 8. АВТОРЫ --- */
         .authors-container {
             position: absolute;
             top: 20px;
@@ -152,21 +174,14 @@
             animation: rainbow_move 3s linear infinite;
         }
 
-        @keyframes rainbow_move {
-            to { background-position: 200% center; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-5px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes rainbow_move { to { background-position: 200% center; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 
         /* --- 9. МЫСЛИ --- */
         .bg-thought {
             position: absolute;
             font-family: 'Consolas', monospace;
             color: rgba(255, 255, 255, 0.4);
-            /* Размер задается в JS, но тут база */
             font-size: 16px; 
             pointer-events: none;
             z-index: 1;
@@ -177,7 +192,7 @@
 
         @keyframes floatFade {
             0% { opacity: 0; transform: translateY(0); }
-            20% { opacity: 0.4; } /* Чуть ярче сделал, раз шрифт больше */
+            20% { opacity: 0.4; }
             80% { opacity: 0.4; }
             100% { opacity: 0; transform: translateY(-40px); }
         }
@@ -186,16 +201,13 @@
 </head>
 <body>
 
-    <!-- Строка с авторами сверху -->
     <div class="authors-container">
         Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
     </div>
 
-    <!-- Сюда скрипт будет спавнить "мысли" -->
     <div id="thoughts-wrapper"></div>
 
     <div class="container">
-        
         <!-- Заголовок -->
         <h1 class="title">
             <span class="text-local">Local</span><span class="text-box">-Box</span>
@@ -204,7 +216,6 @@
         <div class="loading-box">
             <div class="status-label" id="status">INITIALIZING CONNECTION...</div>
             
-            <!-- Полоса загрузки -->
             <div class="progress-track">
                 <div class="progress-bar" id="bar"></div>
             </div>
@@ -221,9 +232,42 @@
         const statusText = document.getElementById('status');
         const fileWindow = document.getElementById('file-window');
         
-        // ============================================
-        // СПИСОК МЫСЛЕЙ (Заполнил примерами, чтобы работало)
-        // ============================================
+        let addonCount = 0;
+        let luaCount = 0;
+        let totalFiles = 0;
+
+        // --- ЛОГИРОВАНИЕ ---
+        function appendLog(element) {
+            fileWindow.appendChild(element);
+            if (fileWindow.children.length > 7) {
+                fileWindow.removeChild(fileWindow.children[0]);
+            }
+        }
+
+        function logAddon(name) {
+            addonCount++;
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `<span class="tag">[ADDON #${addonCount}]</span><span class="filename">${name}</span>`;
+            appendLog(div);
+        }
+
+        function logLua(info) {
+            luaCount++;
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `<span class="tag-lua">[LUA #${luaCount}]</span><span class="filename">${info}</span>`;
+            appendLog(div);
+        }
+        
+        function logSystem(info) {
+            const div = document.createElement('div');
+            div.className = 'file-item';
+            div.innerHTML = `<span class="tag-sys">[SYS]</span><span class="filename">${info}</span>`;
+            appendLog(div);
+        }
+
+        // --- МЫСЛИ ---
         const thoughtTexts = [
             "Break your neck",
             "George Floyd Wiki",
@@ -244,62 +288,63 @@
             "I think i need go into my window",
             "Gay porn with your dad"
         ];
-        
-        // Функция создания мысли
-        function spawnThought() {
-            if (thoughtTexts.length === 0) return; // Защита от пустого массива
 
+        function spawnThought() {
+            if (thoughtTexts.length === 0) return;
             const text = thoughtTexts[Math.floor(Math.random() * thoughtTexts.length)];
             const el = document.createElement('div');
             el.className = 'bg-thought';
             el.innerText = text;
-
-            // Рандомная позиция
             const posX = Math.random() * 80 + 10; 
             const posY = Math.random() * 80 + 10;
-            
-            // --- ИЗМЕНЕНИЕ: УВЕЛИЧЕННЫЙ РАЗМЕР ШРИФТА ---
-            // Теперь от 16px до 26px (было 10-14px)
             const size = Math.floor(Math.random() * 10) + 16;
-
             el.style.left = posX + '%';
             el.style.top = posY + '%';
             el.style.fontSize = size + 'px';
-
             document.body.appendChild(el);
-
-            setTimeout(() => {
-                el.remove();
-            }, 6000);
+            setTimeout(() => { el.remove(); }, 6000);
         }
-
         setInterval(spawnThought, 800);
 
         // ============================================
-        // ЛОГИКА ЗАГРУЗКИ GMOD
+        // ЛОГИКА ЗАГРУЗКИ GMOD (HOOKS)
         // ============================================
-        
-        let totalFiles = 0;
 
-        function addFile(name) {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `<span class="prefix">>></span>${name}`;
-            fileWindow.appendChild(div);
+        // Это функция, которая получает текст как на твоем скриншоте
+        function SetStatusChanged(status) { 
+            // Обновляем текст НАД полосой
+            statusText.innerText = status; 
+            
+            // ПАРСИНГ: Пытаемся понять, что это за статус, и добавить его В окно файлов
 
-            if (fileWindow.children.length > 6) {
-                fileWindow.removeChild(fileWindow.children[0]);
+            // 1. Проверка на WORKSHOP ADDON (как на скрине: ... LOADING 'Name')
+            // Ищем текст внутри одинарных кавычек '...'
+            const workshopMatch = status.match(/'([^']+)'/);
+            
+            if (workshopMatch && status.includes("LOADING")) {
+                // Если нашли название аддона в кавычках
+                logAddon(workshopMatch[1]);
+            }
+            // 2. Проверка на LUA / SCRIPTS
+            else if (status.toLowerCase().includes("lua") || status.toLowerCase().includes("script") || status.toLowerCase().includes("client info")) {
+                logLua(status);
+            }
+            // 3. Если это просто смена статуса (например "Mounting Addons"), тоже пишем в лог, если это не пустота
+            else if (status.length > 2) {
+                // Проверяем, чтобы не дублировать, если статус такой же
+                // Но для простоты просто логируем как системное сообщение
+                // logSystem(status); // Раскомментируй, если хочешь видеть ВСЕ статусы в окне
             }
         }
-
-        // --- GMOD HOOKS ---
-        function SetStatusChanged(status) { 
-            statusText.innerText = status.toUpperCase(); 
-        }
         
+        // Это функция для "старой" загрузки одиночных файлов (FastDL)
         function DownloadingFile(fileName) { 
             statusText.innerText = "DOWNLOADING: " + fileName; 
-            addFile(fileName); 
+            let cleanName = fileName;
+            if (fileName.includes("/")) {
+                cleanName = fileName.split('/').pop(); 
+            }
+            logAddon(cleanName); 
         }
         
         function SetFilesTotal(total) { totalFiles = total; }
@@ -312,7 +357,6 @@
         }
         
         function SetFilesRemaining(remaining) { SetFilesNeeded(remaining); }
-
 
     </script>
 </body>
