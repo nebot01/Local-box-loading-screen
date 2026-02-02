@@ -12,7 +12,10 @@
             margin: 0;
             padding: 0;
             background-color: #1a1a1a;
-            /* Убрали статичную картинку отсюда, теперь это делает слайдер */
+            /* ФОН (Картинка) */
+            background-image: url('https://cdn.discordapp.com/attachments/1466961682713542807/1467011005505601576/image.png?ex=697ed3f7&is=697d8277&hm=b6b802c4724260a49fff4574222bb24127fc31c74dab1d895f700d192bb3bdfe&');
+            background-size: cover;
+            background-position: center;
             height: 100vh;
             overflow: hidden;
             font-family: 'VT323', 'Courier New', monospace;
@@ -29,32 +32,6 @@
             box-sizing: border-box;
         }
 
-        /* --- СЛАЙДЕР ФОНА (НОВОЕ) --- */
-        #bg-slider {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -2; /* Самый нижний слой */
-        }
-
-        .bg-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            transition: opacity 1.5s ease-in-out; /* Время плавного перехода */
-        }
-
-        .bg-slide.active {
-            opacity: 1;
-        }
-
         /* --- СЕТКА И ЗАТЕМНЕНИЕ --- */
         body::before {
             content: "";
@@ -65,7 +42,7 @@
                 linear-gradient(rgba(255, 0, 0, 0.336) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 0, 0, 0.274) 1px, transparent 1px);
             background-size: 50px 50px;
-            z-index: -1; /* Поверх фона, но под текстом */
+            z-index: -1;
             box-shadow: inset 0 0 200px rgba(0,0,0,0.9);
         }
 
@@ -97,16 +74,16 @@
         @keyframes rainbow_move { to { background-position: 200% center; } }
 
         /* --- ШАПКА САНТЫ --- */
-        .santa-hat {
-            position: absolute;
-            top: -7px;
-            right: -20px;
-            width: 60px;
-            height: auto;
-            transform: rotate(15deg);
-            z-index: 15;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
-        }
+<!--    .santa-hat { -->
+<!--        position: absolute; -->
+<!--        top: -7px; -->
+<!--        right: -20px; -->
+<!--        width: 60px; -->
+<!--        height: auto; -->
+<!--        transform: rotate(15deg); -->
+<!--        z-index: 15; -->
+<!--        filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); -->
+<!--    } -->
 
         /* --- СНЕЖИНКИ --- */
         .snowflake {
@@ -203,7 +180,7 @@
         .secondary-status::after {
             content: '';
             display: inline-block;
-            width: 0.8em; 
+            width: 0.8em; /* Фиксированная ширина, чтобы текст не прыгал */
             text-align: left;
             animation: blink-dots 1.5s infinite steps(4, end);
         }
@@ -225,6 +202,7 @@
             max-width: 90%;
             margin-left: auto;
             margin-right: auto;
+            /* Файл оставляем стандартным шрифтом для читаемости путей */
             font-family: 'Share Tech Mono', monospace; 
         }
 
@@ -259,11 +237,6 @@
 </head>
 <body>
 
-    <!-- СЛАЙДЕР ФОНА -->
-    <div id="bg-slider">
-        <!-- Картинки добавляются через JS -->
-    </div>
-
     <!-- АВТОРЫ -->
     <div class="authors-container">
         Authors: <span class="rainbow-names">Ne bot01, Wagan</span>
@@ -275,7 +248,7 @@
             <!-- Блок с шапкой -->
             <span class="title-part-box">
                 - Box
-                <img src="https://static.vecteezy.com/system/resources/previews/032/545/954/non_2x/christmas-santa-claus-red-and-white-hat-isolated-on-transparent-background-png.png" class="santa-hat" alt="Hat">
+<!--                <img src="https://static.vecteezy.com/system/resources/previews/032/545/954/non_2x/christmas-santa-claus-red-and-white-hat-isolated-on-transparent-background-png.png" class="santa-hat" alt="Hat">-->
             </span>
         </h1>
         <div class="subtitle">Please wait while we prepare your session</div>
@@ -285,6 +258,7 @@
         <div class="corner corner-tl"></div>
         <div class="corner corner-br"></div>
 
+        <!-- Убрали точки из текста, они добавятся через CSS -->
         <div class="status-text" id="status-text">Connecting to server</div>
         <div class="file-status" id="file-display">Retrieving server info...</div>
 
@@ -292,50 +266,11 @@
             <div class="progress-bar" id="load-bar"></div>
         </div>
 
+        <!-- Убрали точки из текста -->
         <div class="secondary-status">Downloading assets</div>
     </div>
 
     <script>
-        // --- НАСТРОЙКА КАРТИНОК ФОНА ---
-        const backgrounds = [
-            'https://cdn.discordapp.com/attachments/1466961682713542807/1467011005505601576/image.png?ex=697ed3f7&is=697d8277&hm=b6b802c4724260a49fff4574222bb24127fc31c74dab1d895f700d192bb3bdfe&',
-            'https://cdn.discordapp.com/attachments/1355439982872891517/1467114511604387901/ebalo.jpg?ex=697f345d&is=697de2dd&hm=0e46da87503d068526c94ccd3324cf21de96f9afdc7a1984cb542e2d1fda89a8&', // Пример 2
-            'https://cdn.discordapp.com/attachments/1355439982872891517/1467114759345279078/94822e444df57bf99fb226f5a792000c.webp?ex=697f3498&is=697de318&hm=b31fc3994f4f6c8c09e9d4687f69236b5020c3887591d5fca46ffdafe42641cd&',  // Пример 3
-            'https://cdn.discordapp.com/attachments/1355439982872891517/1467115271859732551/Hell.jpg?ex=697f3512&is=697de392&hm=8621dfe8a76c6839d93858230f906e6f513069e97146eb0465b3650582e4f326&',
-            ''
-        ];
-        
-        const slideDuration = 5000; // Время показа одной картинки (5000мс = 5 сек)
-
-        // Логика слайдера
-        function initSlider() {
-            const sliderContainer = document.getElementById('bg-slider');
-            let currentSlide = 0;
-
-            // Создаем div для каждой картинки
-            backgrounds.forEach((url, index) => {
-                const div = document.createElement('div');
-                div.className = 'bg-slide';
-                div.style.backgroundImage = `url('${url}')`;
-                if (index === 0) div.classList.add('active'); // Первая картинка активна сразу
-                sliderContainer.appendChild(div);
-            });
-
-            // Функция смены
-            setInterval(() => {
-                const slides = document.querySelectorAll('.bg-slide');
-                slides[currentSlide].classList.remove('active');
-                
-                currentSlide = (currentSlide + 1) % slides.length;
-                
-                slides[currentSlide].classList.add('active');
-            }, slideDuration);
-        }
-
-        // Запуск слайдера
-        initSlider();
-
-
         // --- ЛОГИКА СНЕЖИНОК ---
         function spawnSnowflake() {
             var snow = document.createElement('div');
@@ -358,6 +293,8 @@
         }
 
         function SetStatusChanged(status) {
+            // GMod часто присылает текст уже с точками (например, "Sending info...").
+            // Мы удаляем их, чтобы использовать нашу CSS анимацию.
             var cleanStatus = status.replace(/\.+$/, "");
             document.getElementById('status-text').innerText = cleanStatus;
             
