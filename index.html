@@ -10,13 +10,13 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ГЛАВНОЕ ПРАВИЛО: IBM Plex Mono ДЛЯ ВСЕГО --- */
+        /* --- ГЛАВНОЕ ПРАВИЛО --- */
         * {
             font-family: 'IBM Plex Mono', monospace !important;
             box-sizing: border-box;
         }
 
-        /* --- 1. ФОНОВЫЕ КАРТИНКИ --- */
+        /* --- ФОН --- */
         #bg-container {
             position: fixed;
             top: 0;
@@ -44,7 +44,7 @@
             opacity: 1;
         }
 
-        /* --- 2. ГЛОБАЛЬНАЯ СЕТКА --- */
+        /* --- СЕТКА --- */
         #grid-overlay {
             position: fixed;
             top: 0;
@@ -59,7 +59,7 @@
             pointer-events: none;
         }
 
-        /* --- ОБЕРТКА ИНТЕРФЕЙСА --- */
+        /* --- ОБЕРТКА --- */
         .wrapper {
             position: absolute;
             bottom: 5%; 
@@ -72,7 +72,7 @@
             z-index: 10;
         }
 
-        /* --- ЗАГОЛОВОК СЕРВЕРА --- */
+        /* --- ЗАГОЛОВОК --- */
         .server-title {
             font-size: 72px;
             text-transform: uppercase;
@@ -93,7 +93,7 @@
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
 
-        /* --- СТИЛЬ ОКОН (VGUI) --- */
+        /* --- ОКНА --- */
         .vgui-box {
             position: relative;
             background-color: rgba(0, 0, 0, 0.92);
@@ -189,7 +189,7 @@
             line-height: 1.4;
         }
 
-        /* --- СТАТУС МУЗЫКИ --- */
+        /* --- МУЗЫКА --- */
         .music-status {
             font-size: 14px;
             color: #aaa;
@@ -209,7 +209,6 @@
             animation: pulse 1s infinite;
         }
         
-        /* Класс, если музыка на паузе */
         .music-icon.paused {
             background-color: #550000;
             box-shadow: none;
@@ -222,7 +221,7 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* --- ПЛАВНЫЕ ТОЧКИ --- */
+        /* --- ТОЧКИ --- */
         .dots span {
             opacity: 0;
             animation: smoothDots 1.4s infinite ease-in-out;
@@ -247,7 +246,8 @@
     <div id="grid-overlay"></div>
 
     <!-- Аудио элемент -->
-    <audio id="loading-music" loop>
+    <audio id="loading-music">
+        <!-- Ссылка на ПЕРВЫЙ трек -->
         <source src="https://zcity-help.ru/content/music/dubstep.mp3" type="audio/mpeg">
     </audio>
 
@@ -280,9 +280,7 @@
         <div class="vgui-box music-box">
             <div class="files-label">Background Audio</div>
             <div class="music-status">
-                <!-- Кружок-индикатор -->
                 <span id="music-indicator" class="music-icon paused"></span>
-                <!-- Текст статуса -->
                 <span id="music-text">Initializing Audio...</span>
             </div>
         </div>
@@ -329,61 +327,70 @@
         const music = document.getElementById('loading-music');
         const musicText = document.getElementById('music-text');
         const musicIcon = document.getElementById('music-indicator');
+        
+        // Ссылка на второй трек (Tuca Donka)
+        const secondTrackUrl = "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XRVhIbnMyY1lCeHlDYVdkL1VXSDdjSDJDdzZiVXhYREpJZTg1dE1Qb2hiUzNNNm1jbEM1dkFwTGRvVnFEUEFqbkE9/CURSEDEVIL_DJ_FKU_Skorde_-_TUCA_DONKA_Kashimo_(SkySound.cc).mp3";
 
-        // Я поднял громкость до 15% (0.15), чтобы вы точно услышали, работает ли оно.
-        // Потом поменяйте на 0.05
-        music.volume = 0.15; 
+        // ГРОМКОСТЬ: Вернул 10% (0.1), можно ставить 0.05 (5%)
+        music.volume = 0.1; 
 
-        // Функция успешного запуска
-        function onMusicStart() {
-            musicText.innerText = "NOW PLAYING: dubstep.mp3 (15%)";
+        // Функция обновления текста
+        function updateMusicUI(trackName) {
+            musicText.innerText = "PLAYING: " + trackName + " (10%)";
             musicIcon.classList.remove('paused');
         }
 
-        // Ждем 1 секунду
+        // 1. Запуск первой песни
         setTimeout(() => {
             const playPromise = music.play();
-
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
-                    // Музыка играет
-                    onMusicStart();
-                })
-                .catch(error => {
-                    // Браузер заблокировал музыку
+                    updateMusicUI("LOADING SCREEN MUSIC");
+                    
+                    // 2. Таймер на 30 секунд для смены трека
+                    setTimeout(() => {
+                        console.log("Switching to Track 2");
+                        music.src = secondTrackUrl;
+                        music.play();
+                        updateMusicUI("TUCA DONKA");
+                    }, 30000); // 30000 мс = 30 секунд
+
+                }).catch(error => {
                     console.log("Auto-play prevented");
                     musicText.innerText = "CLICK ANYWHERE TO START MUSIC";
                     musicIcon.classList.add('paused');
                     
-                    // Добавляем клик для разблокировки
                     document.body.addEventListener('click', function() {
                         music.play();
-                        onMusicStart();
+                        updateMusicUI("LOADING SCREEN MUSIC");
+                        
+                        // Если запустили кликом, тоже ставим таймер на смену
+                        setTimeout(() => {
+                            music.src = secondTrackUrl;
+                            music.play();
+                            updateMusicUI("TUCA DONKA");
+                        }, 30000);
+                        
                     }, { once: true });
                 });
             }
-        }, 1000);
-
+        }, 1000); // Задержка 1с перед стартом
 
         // --- GMOD ИНТЕГРАЦИЯ ---
         const dotsHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
-
         function GameDetails(servername, serverurl, mapname, maxplayers, steamid, gamemode) {
             document.getElementById('gamemode').innerText = gamemode || "Garry's Mod";
         }
-
         function SetStatusChanged(status) {
             document.getElementById('status-primary').innerHTML = status + dotsHTML;
             if(status && status.indexOf("Downloading") === -1) {
                 document.getElementById('file-status').innerHTML = "System Idle" + dotsHTML;
             }
         }
-
         function DownloadingFile(fileName) {
             document.getElementById('status-primary').innerText = "Downloading Assets...";
             document.getElementById('file-status').innerHTML = "Downloading: <span style='color:#ff4848'>" + fileName + "</span>";
         }
-        
         function SetFilesTotal(total) {}
         function SetFilesNeeded(needed) {}
     </script>
