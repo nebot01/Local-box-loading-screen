@@ -57,12 +57,63 @@
         }
         @keyframes scanner { 0% { left: -30%; width: 20%; } 50% { width: 40%; } 100% { left: 100%; width: 20%; } }
 
-        .files-box, .music-box { display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
+        /* ИЗМЕНЕНИЯ В СТИЛЯХ FILES-BOX */
+        .files-box { 
+            display: flex; flex-direction: column; justify-content: flex-start; 
+            min-height: 140px; /* Увеличили высоту для списка */
+        }
+        .music-box { display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
+
         .files-label {
             font-size: 12px; color: #ff0000; text-transform: uppercase; margin-bottom: 8px;
             border-bottom: 1px solid #330000; padding-bottom: 4px; display: inline-block; font-weight: 700;
         }
-        .current-file { font-size: 15px; color: #eee; word-break: break-all; line-height: 1.4; }
+
+        /* СТИЛИ ДЛЯ СПИСКА ФАЙЛОВ */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .file-entry {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* Анимация появления */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Логика прозрачности: чем ниже файл, тем он прозрачнее */
+        .file-entry:nth-child(1) { color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.5); opacity: 1; }
+        .file-entry:nth-child(2) { color: #ddd; opacity: 0.8; }
+        .file-entry:nth-child(3) { color: #bbb; opacity: 0.6; }
+        .file-entry:nth-child(4) { color: #999; opacity: 0.4; }
+        .file-entry:nth-child(5) { color: #777; opacity: 0.2; }
+        .file-entry:nth-child(n+6) { display: none; } /* Скрываем всё, что старше 5 */
+
+        .type-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 4px;
+            margin-right: 8px;
+            border-radius: 2px;
+            background: #330000;
+            color: #ff4e4e;
+            font-weight: bold;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        /* --- */
 
         .music-status { font-size: 14px; color: #aaa; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
         .music-icon {
@@ -100,7 +151,10 @@
 
         <div class="vgui-box files-box">
             <div class="files-label">File Operations</div>
-            <div class="current-file" id="file-status">Downloading assets<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+            <!-- Сюда JS будет добавлять файлы -->
+            <div id="file-list" class="file-list">
+                <div class="file-entry" style="color: #666; font-style: italic;">Waiting for file stream...</div>
+            </div>
         </div>
 
         <div class="vgui-box music-box">
@@ -113,7 +167,7 @@
     </div>
 
     <script>
-        // --- ФОН (ТЕПЕРЬ РАНДОМНЫЙ) ---
+        // --- ФОН ---
         const images = [
             "https://drive.google.com/uc?export=download&id=1ap_49d8GDbt1nGGwge0-xoU5WVPqc9nx",
             "https://drive.google.com/uc?export=download&id=1Ms5L3OLaDWZIFxDQGwc8B-y35Yih1hH4",
@@ -134,202 +188,150 @@
                 div.style.backgroundImage = `url('${url}')`;
                 bgContainer.appendChild(div);
             });
-
-            // Выбираем случайный стартовый индекс
             currentIndex = Math.floor(Math.random() * images.length);
-            
-            // Активируем его
             const slides = document.querySelectorAll('.bg-slide');
             slides[currentIndex].classList.add('active');
-
-            // Запускаем интервал
             if (images.length > 1) setInterval(nextSlide, slideInterval);
         }
 
         function nextSlide() {
             const slides = document.querySelectorAll('.bg-slide');
-            
-            // Убираем активный класс у текущего
             slides[currentIndex].classList.remove('active');
-
-            // Выбираем новый случайный индекс, отличный от текущего
             let nextIndex;
             if (slides.length > 1) {
                 do {
                     nextIndex = Math.floor(Math.random() * slides.length);
                 } while (nextIndex === currentIndex);
-            } else {
-                nextIndex = 0;
-            }
-
+            } else { nextIndex = 0; }
             currentIndex = nextIndex;
             slides[currentIndex].classList.add('active');
         }
         initBackgrounds();
 
-        // =========================================================
-        //                 НАСТРОЙКИ МУЗЫКИ
-        // =========================================================
-        const musicVolume = 0.1; // Целевая громкость (10%)
-        const fadeTime = 2000; // Время затухания/появления (мс)
+        // --- МУЗЫКА ---
+        const musicVolume = 0.1; 
+        const fadeTime = 2000; 
         
         const playlist = [
-            {
-                name: "DUBSTEP", 
-                url: "https://zcity-help.ru/content/music/dubstep.mp3",
-                duration: 30000
-            },
-            {
-                name: "TUCA DONKA", 
-                url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XRVhIbnMyY1lCeHlDYVdkL1VXSDdjSDJDdzZiVXhYREpJZTg1dE1Qb2hiUzNNNm1jbEM1dkFwTGRvVnFEUEFqbkE9/CURSEDEVIL_DJ_FKU_Skorde_-_TUCA_DONKA_Kashimo_(SkySound.cc).mp3",
-                duration: 30000
-            },
-            {
-                name: "WAS WOLEN WIR TRINKEN", 
-                url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XR3dSTmdRQW9YTEx4ME5qR1lHcWlCTmVyN2pLWFAzdzZvcEoyZWFmZDlHNW5IWnF1dHpTTEpqTW5BS0JmRGZPNW89/nemeckaya_-_Was_wollen_wir_trinken_(SkySound.cc).mp3",
-                duration: 60000
-            },
-            {
-                name: "UNIVERSAL COLLAPSE", 
-                url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XR29oOXlnSWprRnpVRHF3VW1NS0Y5OHV2SVEzRThkczY4SEJ2UnFYZVlLYjJ5YjRqcHNBYkMvVXhDU21ONGkveXM9/Terraria_Calamity_Mod_-_UNIVERSAL_COLLAPSE_(SkySound.cc).mp3",
-                duration: 60000
-            },
+            { name: "DUBSTEP", url: "https://zcity-help.ru/content/music/dubstep.mp3", duration: 30000 },
+            { name: "TUCA DONKA", url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XRVhIbnMyY1lCeHlDYVdkL1VXSDdjSDJDdzZiVXhYREpJZTg1dE1Qb2hiUzNNNm1jbEM1dkFwTGRvVnFEUEFqbkE9/CURSEDEVIL_DJ_FKU_Skorde_-_TUCA_DONKA_Kashimo_(SkySound.cc).mp3", duration: 30000 },
+            { name: "WAS WOLEN WIR TRINKEN", url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XR3dSTmdRQW9YTEx4ME5qR1lHcWlCTmVyN2pLWFAzdzZvcEoyZWFmZDlHNW5IWnF1dHpTTEpqTW5BS0JmRGZPNW89/nemeckaya_-_Was_wollen_wir_trinken_(SkySound.cc).mp3", duration: 60000 },
+            { name: "UNIVERSAL COLLAPSE", url: "https://fine.sunproxy.net/file/T1ZXdFhRdW5YOVR0bGE3TVFEbHlqUVBPeXlCaEtUd3JHUkhMWGF6WC9XR29oOXlnSWprRnpVRHF3VW1NS0Y5OHV2SVEzRThkczY4SEJ2UnFYZVlLYjJ5YjRqcHNBYkMvVXhDU21ONGkveXM9/Terraria_Calamity_Mod_-_UNIVERSAL_COLLAPSE_(SkySound.cc).mp3", duration: 60000 },
         ];
-        // =========================================================
 
         const music = document.getElementById('loading-music');
         const musicText = document.getElementById('music-text');
         const musicIcon = document.getElementById('music-indicator');
-        
         let trackIndex = -1;
-        let isFirstTrack = true; // Флаг для проверки первого трека
-        
-        // Таймеры
-        let switchTimer = null;
-        let fadeOutTimer = null;
-        let fadeInterval = null;
+        let isFirstTrack = true;
+        let switchTimer, fadeOutTimer, fadeInterval;
 
         function updateMusicUI(trackName) {
             musicText.innerText = "PLAYING: " + trackName + " (" + (musicVolume*100) + "%)";
             musicIcon.classList.remove('paused');
         }
 
-        // Анимация громкости
         function animateVolume(fromVol, toVol, duration) {
             if (fadeInterval) clearInterval(fadeInterval);
-            
             const start = Date.now();
-            const stepTime = 50;
-            
             fadeInterval = setInterval(() => {
                 let timePassed = Date.now() - start;
                 let progress = timePassed / duration;
                 if (progress > 1) progress = 1;
-                
-                let currentVol = fromVol + (toVol - fromVol) * progress;
-                if (currentVol < 0) currentVol = 0;
-                if (currentVol > 1) currentVol = 1;
-                
-                music.volume = currentVol;
-                
-                if (progress === 1) {
-                    clearInterval(fadeInterval);
-                }
-            }, stepTime);
-        }
-
-        function getRandomIndex(max) {
-            return Math.floor(Math.random() * max);
+                music.volume = fromVol + (toVol - fromVol) * progress;
+                if (progress === 1) clearInterval(fadeInterval);
+            }, 50);
         }
 
         function playRandomTrack() {
-            let nextIndex;
-            if (playlist.length > 1) {
-                do {
-                    nextIndex = getRandomIndex(playlist.length);
-                } while (nextIndex === trackIndex);
-            } else {
-                nextIndex = 0;
-            }
+            let nextIndex = (playlist.length > 1) ? Math.floor(Math.random() * playlist.length) : 0;
+            if (nextIndex === trackIndex && playlist.length > 1) return playRandomTrack();
             playTrack(nextIndex);
         }
 
         function playTrack(index) {
             trackIndex = index;
             const track = playlist[index];
-            
             if (switchTimer) clearTimeout(switchTimer);
             if (fadeOutTimer) clearTimeout(fadeOutTimer);
 
             music.src = track.url;
-            
-            // Если это САМЫЙ ПЕРВЫЙ трек - ставим громкость сразу (чтобы не было тишины)
-            // Если это СМЕНА трека - ставим 0, чтобы плавно поднять
-            if (isFirstTrack) {
-                music.volume = musicVolume; 
-            } else {
-                music.volume = 0;
-            }
+            music.volume = isFirstTrack ? musicVolume : 0;
             
             const playPromise = music.play();
-
             if (playPromise !== undefined) {
                 playPromise.then(_ => {
                     updateMusicUI(track.name);
+                    if (!isFirstTrack) animateVolume(0, musicVolume, fadeTime);
+                    else isFirstTrack = false;
                     
-                    if (isFirstTrack) {
-                        isFirstTrack = false; // Следующие треки будут с анимацией
-                    } else {
-                        // Плавное появление (Fade In)
-                        animateVolume(0, musicVolume, fadeTime);
-                    }
-                    
-                    // Таймер затухания в конце
-                    fadeOutTimer = setTimeout(() => {
-                        console.log("Fading out...");
-                        animateVolume(musicVolume, 0, fadeTime);
-                    }, track.duration - fadeTime);
-
-                    // Таймер переключения
-                    switchTimer = setTimeout(() => {
-                        console.log("Switching track...");
-                        playRandomTrack();
-                    }, track.duration);
-
+                    fadeOutTimer = setTimeout(() => animateVolume(musicVolume, 0, fadeTime), track.duration - fadeTime);
+                    switchTimer = setTimeout(playRandomTrack, track.duration);
                 }).catch(error => {
-                    console.log("Auto-play blocked");
                     musicText.innerText = "CLICK ANYWHERE TO START MUSIC";
                     musicIcon.classList.add('paused');
-                    
-                    document.body.addEventListener('click', function() {
-                        playTrack(trackIndex);
-                    }, { once: true });
+                    document.body.addEventListener('click', () => playTrack(trackIndex), { once: true });
                 });
             }
         }
-
-        // ЗАПУСК БЕЗ ЗАДЕРЖКИ (МГНОВЕННО)
         playRandomTrack();
-
 
         // --- GMOD ИНТЕГРАЦИЯ ---
         const dotsHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+        
         function GameDetails(servername, serverurl, mapname, maxplayers, steamid, gamemode) {
             document.getElementById('gamemode').innerText = gamemode || "Garry's Mod";
         }
+
         function SetStatusChanged(status) {
             document.getElementById('status-primary').innerHTML = status + dotsHTML;
-            if(status && status.indexOf("Downloading") === -1) {
-                document.getElementById('file-status').innerHTML = "System Idle" + dotsHTML;
+        }
+
+        // Вспомогательная функция для определения типа файла
+        function getFileType(fileName) {
+            if (fileName.endsWith(".bsp")) return "MAP";
+            if (fileName.endsWith(".mdl")) return "MDL";
+            if (fileName.endsWith(".vtf") || fileName.endsWith(".vmt")) return "TEX";
+            if (fileName.endsWith(".wav") || fileName.endsWith(".mp3")) return "SND";
+            if (fileName.endsWith(".lua")) return "LUA";
+            if (fileName.endsWith(".gma")) return "GMA";
+            if (fileName.endsWith(".bz2")) return "ZIP";
+            return "FILE";
+        }
+
+        // Обновленная функция загрузки файлов
+        function DownloadingFile(fileName) {
+            // Обновляем верхний статус
+            document.getElementById('status-primary').innerText = "Downloading Assets...";
+            
+            const list = document.getElementById('file-list');
+            
+            // Если это первый реальный файл, убираем заглушку "Waiting..."
+            if (list.children.length > 0 && list.children[0].innerText.includes("Waiting")) {
+                list.innerHTML = "";
+            }
+
+            // Создаем новую строку
+            const item = document.createElement('div');
+            item.className = 'file-entry';
+            
+            const type = getFileType(fileName);
+            // Очищаем путь файла, оставляя только имя для красоты (опционально)
+            // const shortName = fileName.split('/').pop(); 
+            
+            item.innerHTML = `<span class="type-tag">${type}</span>${fileName}`;
+            
+            // Добавляем в НАЧАЛО списка (prepend)
+            list.prepend(item);
+
+            // Если элементов больше 6, удаляем последний (самый старый)
+            if (list.children.length > 6) {
+                list.lastElementChild.remove();
             }
         }
-        function DownloadingFile(fileName) {
-            document.getElementById('status-primary').innerText = "Downloading Assets...";
-            document.getElementById('file-status').innerHTML = "Downloading: <span style='color:#ff4848'>" + fileName + "</span>";
-        }
+
         function SetFilesTotal(total) {}
         function SetFilesNeeded(needed) {}
     </script>
 </body>
 </html>
-
