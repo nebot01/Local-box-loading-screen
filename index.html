@@ -57,12 +57,11 @@
         }
         @keyframes scanner { 0% { left: -30%; width: 20%; } 50% { width: 40%; } 100% { left: 100%; width: 20%; } }
 
-        .files-box, .music-box { display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
+        .music-box { display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
         .files-label {
             font-size: 12px; color: #ff0000; text-transform: uppercase; margin-bottom: 8px;
             border-bottom: 1px solid #330000; padding-bottom: 4px; display: inline-block; font-weight: 700;
         }
-        .current-file { font-size: 15px; color: #eee; word-break: break-all; line-height: 1.4; }
 
         .music-status { font-size: 14px; color: #aaa; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
         .music-icon {
@@ -96,11 +95,6 @@
             </div>
             <div class="main-status-text" id="status-primary">Initializing<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
             <div class="loading-track"><div class="loading-bar"></div></div>
-        </div>
-
-        <div class="vgui-box files-box">
-            <div class="files-label">File Operations</div>
-            <div class="current-file" id="file-status">Downloading assets<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
         </div>
 
         <div class="vgui-box music-box">
@@ -314,19 +308,20 @@
 
         // --- GMOD ИНТЕГРАЦИЯ ---
         const dotsHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+        
         function GameDetails(servername, serverurl, mapname, maxplayers, steamid, gamemode) {
             document.getElementById('gamemode').innerText = gamemode || "Garry's Mod";
         }
+
         function SetStatusChanged(status) {
             document.getElementById('status-primary').innerHTML = status + dotsHTML;
-            if(status && status.indexOf("Downloading") === -1) {
-                document.getElementById('file-status').innerHTML = "System Idle" + dotsHTML;
-            }
         }
+
         function DownloadingFile(fileName) {
+            // Просто обновляем статус на "Downloading Assets...", но не выводим список файлов
             document.getElementById('status-primary').innerText = "Downloading Assets...";
-            document.getElementById('file-status').innerHTML = "Downloading: <span style='color:#ff4848'>" + fileName + "</span>";
         }
+
         function SetFilesTotal(total) {}
         function SetFilesNeeded(needed) {}
     </script>
