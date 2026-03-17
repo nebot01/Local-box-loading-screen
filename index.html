@@ -74,6 +74,13 @@
         .dots span { opacity: 0; animation: smoothDots 1.4s infinite ease-in-out; font-weight: inherit; }
         .dots span:nth-child(1) { animation-delay: 0.0s; } .dots span:nth-child(2) { animation-delay: 0.2s; } .dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes smoothDots { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        .server-logo {
+            display: block;
+            margin: 0 auto -5px auto; /* Центрируем и немного прижимаем к тексту */
+            max-width: 400px; /* Ограничиваем максимальную ширину. Если картинка маленькая - увеличьте значение */
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4)); /* Легкое красное свечение, можно удалить эту строку, если не нужно */
+        }
     </style>
 </head>
 <body>
@@ -84,9 +91,13 @@
     <audio id="loading-music"></audio>
 
     <div class="wrapper">
+        <img src="images/epsteinigrad.png" alt="Server Logo" class="server-logo">
+        
         <h1 class="server-title">
             <span class="title-red">Local</span><span class="title-white">-Box</span>
         </h1>
+
+        <div class="vgui-box main-box">
 
         <div class="vgui-box main-box">
             <div class="status-header">
